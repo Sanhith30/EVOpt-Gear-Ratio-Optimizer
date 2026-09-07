@@ -16,7 +16,7 @@
 7. Start website:
    python app.py
 8. Open:
-   http://127.0.0.1:5000
+   [http://127.0.0.1:5000](https://gare-ten.vercel.app/)
 
 ## Website
 - Optimization page: enter EV parameters and operating conditions.
