@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EV Gear Ratio Optimization — Newton-Raphson Method</title>
+  <meta name="description" content="Optimal gear ratio determination for electric vehicles using Newton-Raphson numerical method. Computes acceleration, max speed, gradeability, power, and energy consumption.">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Splash Screen ────────────────────────────────────────────────────── -->
+<div id="splash">
+  <div class="splash-bg"></div>
+  <div class="splash-content">
+    <div class="splash-logo">
+      <div class="splash-logo-ring">
+        <div class="splash-logo-ring-inner"></div>
+        <svg class="splash-ring-svg" viewBox="0 0 120 120">
+          <circle class="splash-ring-track" cx="60" cy="60" r="54" />
+          <circle class="splash-ring-progress" cx="60" cy="60" r="54" />
+        </svg>
+      </div>
+      <div class="splash-logo-text">EV<span>Opt</span></div>
+    </div>
+    <div class="splash-title">Gear Ratio Optimizer</div>
+    <div class="splash-subtitle">Newton-Raphson · Physics-Based · Numerical Optimization</div>
+    <div class="splash-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="brand">
+    EV<span>Opt</span>
+    <span class="brand-sub">Gear Ratio Optimizer</span>
+  </div>
+  <nav>
+    <a href="/" class="active">Optimization</a>
+    <a href="/dataset">Dataset</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-badge">⚡ Newton-Raphson Method</div>
+  <h1>Optimal <em>Gear Ratio</em><br>for Electric Vehicles</h1>
+  <p>A physics-based numerical optimization engine that determines the single-speed transmission gear ratio maximizing acceleration, maximum speed, and gradeability for a given EV and operating condition.</p>
+</section>
+
+<!-- ── Input Form ───────────────────────────────────────────────────────── -->
+<section class="panel">
+  <div class="section-heading">
+    <div class="section-icon icon-indigo">🚗</div>
+    <div>
+      <h2>Vehicle Parameters</h2>
+      <p>Enter motor, drivetrain, and aerodynamic properties</p>
+    </div>
+  </div>
+  <div class="grid">
+    <label>
+      <span class="label-text">Vehicle Mass</span>
+      <span class="label-sub">m (kg)</span>
+      <input id="mass" type="number" step="any" value="{{defaults.mass}}">
+    </label>
+    <label>
+      <span class="label-text">Motor Torque T<sub>m0</sub></span>
+      <span class="label-sub">Peak torque (N·m)</span>
+      <input id="motor_torque" type="number" step="any" value="{{defaults.motor_torque}}">
+    </label>
+    <label>
+      <span class="label-text">Motor Power</span>
+      <span class="label-sub">Rated power (kW)</span>
+      <input id="motor_power" type="number" step="any" value="{{defaults.motor_power}}">
+    </label>
+    <label>
+      <span class="label-text">Wheel Radius r<sub>w</sub></span>
+      <span class="label-sub">Effective radius (m)</span>
+      <input id="wheel_radius" type="number" step="any" value="{{defaults.wheel_radius}}">
+    </label>
+    <label>
+      <span class="label-text">Transmission Efficiency η</span>
+      <span class="label-sub">Gearbox efficiency (%)</span>
+      <input id="efficiency" type="number" step="any" value="{{defaults.efficiency}}">
+    </label>
+    <label>
+      <span class="label-text">Rolling Resistance C<sub>rr</sub></span>
+      <span class="label-sub">Tyre rolling coefficient</span>
+      <input id="crr" type="number" step="any" value="{{defaults.crr}}">
+    </label>
+    <label>
+      <span class="label-text">Drag Coefficient C<sub>d</sub></span>
+      <span class="label-sub">Aerodynamic drag</span>
+      <input id="cd" type="number" step="any" value="{{defaults.cd}}">
+    </label>
+    <label>
+      <span class="label-text">Frontal Area A</span>
+      <span class="label-sub">Vehicle frontal area (m²)</span>
+      <input id="frontal_area" type="number" step="any" value="{{defaults.frontal_area}}">
+    </label>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-heading">
+    <div class="section-icon icon-emerald">🌄</div>
+    <div>
+      <h2>Operating Conditions</h2>
+      <p>Define the driving scenario for optimization</p>
+    </div>
+  </div>
+  <div class="grid">
+    <label>
+      <span class="label-text">Vehicle Speed v</span>
+      <span class="label-sub">Operating speed (km/h)</span>
+      <input id="speed" type="number" step="any" value="{{defaults.speed}}">
+    </label>
+    <label>
+      <span class="label-text">Road Grade θ</span>
+      <span class="label-sub">Incline angle (°)</span>
+      <input id="grade" type="number" step="any" value="{{defaults.grade}}">
+    </label>
+    <label>
+      <span class="label-text">Motor Speed ω</span>
+      <span class="label-sub">Operating RPM</span>
+      <input id="motor_rpm" type="number" step="any" value="{{defaults.motor_rpm}}">
+    </label>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-heading">
+    <div class="section-icon icon-violet">🔢</div>
+    <div>
+      <h2>Newton-Raphson Settings</h2>
+      <p>Configure the numerical solver parameters</p>
+    </div>
+  </div>
+  <div class="grid">
+    <label>
+      <span class="label-text">Initial Guess G<sub>0</sub></span>
+      <span class="label-sub">Starting gear ratio</span>
+      <input id="initial_ratio" type="number" step="any" value="{{defaults.initial_ratio}}">
+    </label>
+    <label>
+      <span class="label-text">Minimum Ratio G<sub>min</sub></span>
+      <span class="label-sub">Lower bound</span>
+      <input id="min_ratio" type="number" step="any" value="{{defaults.min_ratio}}">
+    </label>
+    <label>
+      <span class="label-text">Maximum Ratio G<sub>max</sub></span>
+      <span class="label-sub">Upper bound</span>
+      <input id="max_ratio" type="number" step="any" value="{{defaults.max_ratio}}">
+    </label>
+    <label>
+      <span class="label-text">Tolerance ε</span>
+      <span class="label-sub">Convergence criterion</span>
+      <input id="tolerance" type="number" step="any" value="{{defaults.tolerance}}">
+    </label>
+    <label>
+      <span class="label-text">Max Iterations</span>
+      <span class="label-sub">Iteration limit</span>
+      <input id="max_iterations" type="number" value="{{defaults.max_iterations}}">
+    </label>
+  </div>
+
+  <button class="btn-run" id="run">
+    <span id="run-icon">⚡</span>
+    <span id="run-text">OPTIMIZE GEAR RATIO</span>
+  </button>
+  <div id="error"></div>
+</section>
+
+<!-- ── Results ─────────────────────────────────────────────────────────── -->
+<section id="results" class="hidden">
+
+  <!-- Optimal G Hero -->
+  <div class="resultHero">
+    <div class="resultHero-inner">
+      <small>OPTIMAL GEAR RATIO — G*</small>
+      <strong id="opt">—</strong>
+      <span id="conv">—</span>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="cards">
+    <div class="card-group-label">📈 Performance Metrics</div>
+    <div class="card indigo">
+      <div class="card-icon">🏎</div>
+      <span class="card-val" id="acc">—</span>
+      <span class="card-unit">Acceleration (m/s²)</span>
+    </div>
+    <div class="card emerald">
+      <div class="card-icon">🚀</div>
+      <span class="card-val" id="speedout">—</span>
+      <span class="card-unit">Maximum Speed (km/h)</span>
+    </div>
+    <div class="card amber">
+      <div class="card-icon">⛰</div>
+      <span class="card-val" id="gradeout">—</span>
+      <span class="card-unit">Gradeability (%)</span>
+    </div>
+    <div class="card violet">
+      <div class="card-icon">🎯</div>
+      <span class="card-val" id="score">—</span>
+      <span class="card-unit">Performance Score S(G*)</span>
+    </div>
+
+    <div class="card-group-label">⚖ Force Analysis</div>
+    <div class="card sky">
+      <div class="card-icon">🔩</div>
+      <span class="card-val" id="wt">—</span>
+      <span class="card-unit">Wheel Torque T<sub>w</sub> (N·m)</span>
+    </div>
+    <div class="card indigo">
+      <div class="card-icon">↗</div>
+      <span class="card-val" id="ft">—</span>
+      <span class="card-unit">Tractive Force F<sub>t</sub> (N)</span>
+    </div>
+    <div class="card emerald">
+      <div class="card-icon">📐</div>
+      <span class="card-val" id="ste">—</span>
+      <span class="card-unit">Specific Tractive Effort</span>
+    </div>
+    <div class="card amber">
+      <div class="card-icon">📉</div>
+      <span class="card-val" id="derating">—</span>
+      <span class="card-unit">Torque Derating Factor f<sub>d</sub></span>
+    </div>
+
+    <div class="card-group-label">⚡ Power &amp; Energy</div>
+    <div class="card violet">
+      <div class="card-icon">🔋</div>
+      <span class="card-val" id="pmotor">—</span>
+      <span class="card-unit">Motor Power P<sub>m</sub> (kW)</span>
+    </div>
+    <div class="card emerald">
+      <div class="card-icon">🛞</div>
+      <span class="card-val" id="pwheel">—</span>
+      <span class="card-unit">Wheel Power P<sub>w</sub> (kW)</span>
+    </div>
+    <div class="card rose">
+      <div class="card-icon">🔥</div>
+      <span class="card-val" id="ploss">—</span>
+      <span class="card-unit">Power Loss P<sub>loss</sub> (kW)</span>
+    </div>
+    <div class="card sky">
+      <div class="card-icon">📊</div>
+      <span class="card-val" id="energy">—</span>
+      <span class="card-unit">Energy Consumption (Wh/km)</span>
+    </div>
+  </div>
+
+  <!-- Force breakdown bars -->
+  <div class="force-bar-wrap">
+    <div class="force-bar-title">⚖ Force Balance at Optimal Gear Ratio G*</div>
+    <div id="force-bars"></div>
+  </div>
+
+  <!-- Charts row 1 -->
+  <div class="chartgrid">
+    <div class="chartbox"><h3>Performance Score S(G) vs Gear Ratio</h3><div class="chart-wrap"><canvas id="perfChart"></canvas></div></div>
+    <div class="chartbox"><h3>Acceleration a(G) vs Gear Ratio (m/s²)</h3><div class="chart-wrap"><canvas id="accChart"></canvas></div></div>
+    <div class="chartbox"><h3>Maximum Speed v<sub>max</sub>(G) vs Gear Ratio (km/h)</h3><div class="chart-wrap"><canvas id="speedChart"></canvas></div></div>
+  </div>
+  <!-- Charts row 2 -->
+  <div class="chartgrid">
+    <div class="chartbox"><h3>Gradeability GR(G) vs Gear Ratio (%)</h3><div class="chart-wrap"><canvas id="gradeChart"></canvas></div></div>
+    <div class="chartbox"><h3>Tractive Force F<sub>t</sub>(G) vs Gear Ratio (N)</h3><div class="chart-wrap"><canvas id="tractionChart"></canvas></div></div>
+    <div class="chartbox"><h3>Power Curves vs Gear Ratio (kW)</h3><div class="chart-wrap"><canvas id="powerChart"></canvas></div></div>
+  </div>
+  <!-- Charts row 3 -->
+  <div class="chartgrid-2">
+    <div class="chartbox"><h3>N-R Convergence: |G<sub>n+1</sub> − G<sub>n</sub>| per Iteration</h3><div class="chart-wrap"><canvas id="convChart"></canvas></div></div>
+    <div class="chartbox"><h3>Force Balance at G* (N)</h3><div class="chart-wrap"><canvas id="forceChart"></canvas></div></div>
+  </div>
+
+  <!-- Mathematical Equations Panel — after results -->
+  <div class="eq-panel">
+    <div class="section-heading">
+      <div class="section-icon icon-violet">⚙</div>
+      <div>
+        <h2>Mathematical Model &amp; Governing Equations</h2>
+        <p>All physics equations used in this optimization — hover each card for details</p>
+      </div>
+    </div>
+    <div class="eq-grid">
+
+      <div class="eq-card">
+        <div class="eq-label">Motor Torque — RPM Derating</div>
+        <div class="eq-formula">
+          T<sub>m</sub> = T<sub>m0</sub> · <span class="var">f</span><sub>d</sub><br>
+          <span class="var">f</span><sub>d</sub> = max(<span class="num">0.55</span>, <span class="num">1</span> − <span class="num">5×10⁻⁵</span> · max(<span class="num">0</span>, ω<sub>rpm</sub> − <span class="num">3000</span>))
+        </div>
+        <div class="eq-desc">Models motor field-weakening above 3000 RPM. Torque linearly derated to a minimum of 55% of peak.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Wheel Torque &amp; Tractive Force</div>
+        <div class="eq-formula">
+          T<sub>w</sub> = T<sub>m</sub> · <span class="var">G</span> · <span class="var">η</span><br>
+          F<sub>t</sub> = T<sub>w</sub> / <span class="var">r</span><sub>w</sub>
+        </div>
+        <div class="eq-desc"><span class="var">G</span> = gear ratio, <span class="var">η</span> = transmission efficiency, <span class="var">r<sub>w</sub></span> = wheel radius (m).</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Rolling Resistance</div>
+        <div class="eq-formula">
+          F<sub>rr</sub> = <span class="var">C</span><sub>rr</sub> · <span class="var">m</span> · <span class="var">g</span>
+        </div>
+        <div class="eq-desc">Proportional to vehicle weight. <span class="var">C<sub>rr</sub></span> = tyre rolling resistance coefficient (typically 0.010–0.015).</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Aerodynamic Drag</div>
+        <div class="eq-formula">
+          F<sub>drag</sub> = ½ · <span class="var">ρ</span> · <span class="var">C</span><sub>d</sub> · <span class="var">A</span> · <span class="var">v</span>²
+        </div>
+        <div class="eq-desc"><span class="var">ρ</span> = 1.225 kg/m³ (air density). Grows with the square of velocity — dominant at high speed.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Grade Resistance</div>
+        <div class="eq-formula">
+          F<sub>grade</sub> = <span class="var">m</span> · <span class="var">g</span> · sin(<span class="var">θ</span>)
+        </div>
+        <div class="eq-desc"><span class="var">θ</span> = road grade angle in radians. Gravity component opposing uphill motion.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Longitudinal Acceleration</div>
+        <div class="eq-formula">
+          <span class="var">a</span>(G) = (F<sub>t</sub> − F<sub>rr</sub> − F<sub>drag</sub> − F<sub>grade</sub>) / <span class="var">m</span>
+        </div>
+        <div class="eq-desc">Net forward force divided by vehicle mass. Positive value = vehicle accelerates.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Maximum Vehicle Speed</div>
+        <div class="eq-formula">
+          v<sub>max</sub>(G) = (ω<sub>max</sub> / <span class="var">G</span>) · <span class="var">r</span><sub>w</sub> · <span class="num">3.6</span><br>
+          ω<sub>max</sub> = <span class="num">8000</span> · 2π / <span class="num">60</span> rad/s
+        </div>
+        <div class="eq-desc">Speed at maximum motor RPM (8000 RPM). Higher G reduces top speed. Converted to km/h by ×3.6.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Gradeability</div>
+        <div class="eq-formula">
+          GR(G) = tan(arcsin( (F<sub>t</sub>−F<sub>rr</sub>−F<sub>drag</sub>) / (<span class="var">m</span>·<span class="var">g</span>) )) · <span class="num">100</span>
+        </div>
+        <div class="eq-desc">Maximum grade (%) the vehicle can climb at constant speed at the given operating point.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Power Analysis</div>
+        <div class="eq-formula">
+          P<sub>m</sub> = T<sub>m</sub> · ω &nbsp;&nbsp;[W]<br>
+          P<sub>w</sub> = F<sub>t</sub> · <span class="var">v</span> &nbsp;&nbsp;[W]<br>
+          P<sub>loss</sub> = P<sub>m</sub> − P<sub>w</sub> &nbsp;&nbsp;[W]
+        </div>
+        <div class="eq-desc">Motor shaft power vs wheel power. Difference is gearbox thermal loss.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Energy Consumption</div>
+        <div class="eq-formula">
+          E = P<sub>m</sub> / (<span class="var">v</span><sub>m/s</sub> · <span class="num">3.6</span>) &nbsp;[Wh/km]
+        </div>
+        <div class="eq-desc">Instantaneous energy cost per kilometre at the given speed and gear ratio.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Composite Performance Score</div>
+        <div class="eq-formula">
+          S(G) = <span class="num">0.4</span>·S̃<sub>a</sub> + <span class="num">0.4</span>·S̃<sub>v</sub> + <span class="num">0.2</span>·S̃<sub>GR</sub><br>
+          S̃<sub>x</sub> = (x − x<sub>min</sub>) / (x<sub>max</sub> − x<sub>min</sub>)
+        </div>
+        <div class="eq-desc">Weighted min-max normalized objective. 40% acceleration + 40% max speed + 20% gradeability.</div>
+      </div>
+
+      <div class="eq-card">
+        <div class="eq-label">Newton-Raphson Update Rule</div>
+        <div class="eq-formula">
+          G<sub>n+1</sub> = G<sub>n</sub> − S′(G<sub>n</sub>) / S″(G<sub>n</sub>)<br>
+          S′ ≈ [S(G+h) − S(G−h)] / <span class="num">2h</span><br>
+          S″ ≈ [S(G+h) − 2S(G) + S(G−h)] / <span class="var">h</span>²
+        </div>
+        <div class="eq-desc">Central-difference numerical differentiation, h = 10⁻⁴. Maximizes S(G) by finding where S′(G) = 0.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Iteration Table -->
+  <div class="panel">
+    <div class="section-heading">
+      <div class="section-icon icon-amber">📋</div>
+      <div>
+        <h2>Newton-Raphson Iteration Table</h2>
+        <p>Step-by-step convergence of the gear ratio toward the optimal value</p>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table id="iterations">
+        <thead>
+          <tr>
+            <th>Iter n</th>
+            <th>Gₙ (current)</th>
+            <th>S′(Gₙ) — 1st deriv</th>
+            <th>S″(Gₙ) — 2nd deriv</th>
+            <th>Gₙ₊₁ (next)</th>
+            <th>|Error| = |Gₙ₊₁ − Gₙ|</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
