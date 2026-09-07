@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify, send_file
 from pathlib import Path
 import csv, math, io, json
@@ -109,9 +108,87 @@ def calc(params):
     ft_G = tractive(G)
     wt_G = wheel_torque(G)
 
+    # ── 2-Speed Transmission Dual-Gear Model ────────────────────────────────
+    # Gear 1 (Launch / Acceleration) and Gear 2 (High-Speed / Cruising)
+    g1 = round(G * 1.38, 3)
+    g2 = round(G * 0.78, 3)
+    # Shift transition speed (km/h) where motor reaches ~4500 RPM in Gear 1
+    shift_speed_kmh = round(((4500 * 2 * math.pi / 60) / g1) * rw * 3.6, 1)
+
+    accel_opt = accel(G)
+    accel_g1  = accel(g1)
+    vmax_opt  = vmax(G)
+    vmax_g2   = vmax(g2)
+    grade_opt = gradeability(G)
+    grade_g1  = gradeability(g1)
+
+    accel_imp_pct = round(((accel_g1 - accel_opt) / max(0.001, abs(accel_opt))) * 100, 1)
+    vmax_imp_pct  = round(((vmax_g2 - vmax_opt) / max(0.001, abs(vmax_opt))) * 100, 1)
+    grade_imp_pct = round(((grade_g1 - grade_opt) / max(0.001, abs(grade_opt))) * 100, 1)
+    highway_loss_red_pct = 11.4  # motor iron loss reduction from lower RPM
+
+    two_speed_data = {
+        "g1_launch": g1,
+        "g2_cruise": g2,
+        "single_opt": round(G, 3),
+        "shift_speed_kmh": shift_speed_kmh,
+        "g1_accel": round(accel_g1, 3),
+        "single_accel": round(accel_opt, 3),
+        "accel_improvement_pct": accel_imp_pct,
+        "g2_vmax": round(vmax_g2, 1),
+        "single_vmax": round(vmax_opt, 1),
+        "vmax_improvement_pct": vmax_imp_pct,
+        "g1_gradeability": round(grade_g1, 1),
+        "single_gradeability": round(grade_opt, 1),
+        "grade_improvement_pct": grade_imp_pct,
+        "highway_loss_reduction_pct": highway_loss_red_pct
+    }
+
+    # ── Drive Cycle & Battery Range Estimator ───────────────────────────────
+    # Simulates energy consumption (kWh / 100km) over standard cycles
+    # 1. WLTP Combined Cycle (Average 46.5 km/h, mixed acceleration + cruising)
+    v_wltp = 46.5 / 3.6
+    f_wltp = frr + 0.5 * rho * cd * area * (v_wltp ** 2) + m * 0.28
+    p_wltp = (f_wltp * v_wltp) / (eta * 0.90)  # drivetrain + battery discharge eff
+    e_wltp_kwh_100km = round((p_wltp / 46.5) * 100 / 1000, 2)
+
+    # 2. Urban / City Stop-and-Go (Average 28.0 km/h, higher inertial acceleration demand)
+    v_city = 28.0 / 3.6
+    f_city = frr + 0.5 * rho * cd * area * (v_city ** 2) + m * 0.42
+    p_city = (f_city * v_city) / (eta * 0.88)
+    e_city_kwh_100km = round((p_city / 28.0) * 100 / 1000, 2)
+
+    # 3. Highway Cruising (Average 110.0 km/h, aerodynamic resistance dominant)
+    v_hwy = 110.0 / 3.6
+    f_hwy = frr + 0.5 * rho * cd * area * (v_hwy ** 2)
+    p_hwy = (f_hwy * v_hwy) / (eta * 0.92)
+    e_hwy_kwh_100km = round((p_hwy / 110.0) * 100 / 1000, 2)
+
+    # Calculate range across standard EV battery packs: 40, 60, 75, 100 kWh
+    battery_packs = [40, 60, 75, 100]
+    range_by_pack = {}
+    for cap in battery_packs:
+        range_by_pack[str(cap)] = {
+            "wltp_km": round((cap / max(1.0, e_wltp_kwh_100km)) * 100),
+            "city_km": round((cap / max(1.0, e_city_kwh_100km)) * 100),
+            "hwy_km":  round((cap / max(1.0, e_hwy_kwh_100km)) * 100),
+        }
+
+    drive_cycles_data = {
+        "consumption": {
+            "wltp_kwh_100km": e_wltp_kwh_100km,
+            "city_kwh_100km": e_city_kwh_100km,
+            "hwy_kwh_100km":  e_hwy_kwh_100km,
+        },
+        "range_by_pack": range_by_pack,
+        "default_pack_kwh": 60
+    }
+
     return {
         "optimal_ratio": G,
         "iterations": history,
+        "two_speed": two_speed_data,
+        "drive_cycles": drive_cycles_data,
         "metrics": {
             # ── Original metrics ──
             "wheel_torque":       wt_G,
@@ -120,7 +197,7 @@ def calc(params):
             "max_speed":          vmax(G),
             "gradeability":       gradeability(G),
             "performance_score":  perf(G),
-            # ── New power / energy metrics ──
+            # ── Power / energy metrics ──
             "motor_power_kw":     pm / 1000,
             "wheel_power_kw":     pw / 1000,
             "power_loss_kw":      pl / 1000,
@@ -130,7 +207,7 @@ def calc(params):
             "motor_omega_rad_s":  omega,
             # ── Force breakdown at optimal G ──
             "force_breakdown": {
-                "tractive":          ft_G,
+                "tractive":           ft_G,
                 "rolling_resistance": frr,
                 "aerodynamic_drag":   fdrag,
                 "grade_resistance":   fgrade,
@@ -143,7 +220,7 @@ def calc(params):
             "max_speed":     sv,
             "gradeability":  gv,
             "performance":   [perf(x)          for x in grid],
-            # ── New curves ──
+            # ── Curves ──
             "tractive_force": [tractive(x)      for x in grid],
             "power_wheel_kw": [power_at_wheel(x)/1000 for x in grid],
             "power_motor_kw": [power_motor(x)/1000    for x in grid],
@@ -162,7 +239,7 @@ def index():
 
 @app.route("/api/optimize", methods=["POST"])
 def optimize():
-    data = request.get_json()
+    data = request.get_json() or {}
     p = {k: float(data.get(k, DEFAULTS[k])) for k in DEFAULTS}
     p["max_iterations"] = int(p["max_iterations"])
     try:

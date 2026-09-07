@@ -71,26 +71,36 @@ The production application is live and hosted on Vercel:
 - **🎯 Newton-Raphson Numerical Optimization Engine:**
   - Iterative root-finding algorithm: $G_{k+1} = G_k - \frac{f(G_k)}{f'(G_k)}$
   - Convergence tolerance ($\epsilon < 10^{-5}$) with detailed iteration log (step, current $G$, residual error, convergence status).
-- **🎨 Premium Engineering Light Theme:**
-  - Glassmorphic translucent cards with subtle borders and shadows (`backdrop-filter: blur`).
-  - Distinct 6-accent color coding for instant metric recognition.
-  - Typography pairing: **DM Serif Display** for editorial authority, **Plus Jakarta Sans** for interfaces, and **JetBrains Mono** for numerical telemetry.
-- **💫 Cinematic Splash Screen:**
-  - Animated SVG brand ring, glowing radial gradients, and dynamic loading indicator on startup.
+- **🏎️ 1-Click Real-World EV Presets:**
+  - Instant one-click configuration switcher loading verified OEM vehicle specifications:
+    - **Tesla Model 3 / Y** (Mass: 1,840 kg, Torque: 450 N·m, $C_d$: 0.23)
+    - **Porsche Taycan** (Mass: 2,295 kg, Torque: 650 N·m, $C_d$: 0.22)
+    - **Tata Nexon EV** (Mass: 1,400 kg, Torque: 215 N·m, $C_d$: 0.32)
+    - **Smart EQ City EV** (Mass: 1,080 kg, Torque: 160 N·m, $C_d$: 0.35)
+    - **Custom Configuration**
+- **⚙️ Single-Speed vs. 2-Speed Dual-Gear Transmission Comparison:**
+  - Simulates high-performance 2-speed EV gearbox dynamics (similar to Porsche Taycan architecture):
+    - **Gear 1 (Launch & Climb):** High reduction ratio optimizing $0 \to 100\text{ km/h}$ acceleration and 35%+ gradeability.
+    - **Gear 2 (High-Speed Cruise):** Taller ratio reducing highway motor RPM and iron core thermal losses.
+    - **Shift Speed Threshold:** Automatically calculated shift transition point.
+- **🔋 Real-World Drive Cycle & Battery Range Estimator:**
+  - Evaluates energy consumption ($\text{kWh / 100 km}$) and estimated range across international driving cycles:
+    - **WLTP Combined Cycle** (46.5 km/h avg speed)
+    - **Urban / City Stop-and-Go** (28.0 km/h avg speed)
+    - **Highway Cruising Cycle** (110.0 km/h avg speed)
+  - Interactive battery pack selector: **40 kWh, 60 kWh (default), 75 kWh, and 100 kWh**.
+- **🎛️ Dual-Input Sensitivity Range Sliders:**
+  - Real-time synchronized range sliders and numeric input fields for vehicle mass, motor torque, speed, road grade, and aerodynamic drag.
+- **🌓 Dark Mode / Light Mode Quick Toggle:**
+  - Instant theme switcher (☀️ Light / 🌙 Dark) in the navigation header with persistent `localStorage` and dynamic Chart.js theme adaptation.
+- **📄 1-Click PDF Engineering Report Export:**
+  - Professional SAE/IEEE technical paper printable layout with executive summary, input table, 2-speed comparison, optimal $G^*$ results, and convergence logs via `window.print()`.
 - **📊 7 Interactive Real-Time Diagnostic Charts:**
-  - Acceleration vs. Gear Ratio
-  - Maximum Speed vs. Gear Ratio
-  - Road Gradeability vs. Gear Ratio
-  - Power Loss Breakdown (Copper $I^2R$, Iron Core, Mechanical)
-  - Transmission System Efficiency vs. Vehicle Speed
-  - Multi-Objective Composite Performance Score
-  - Newton-Raphson Convergence Decay (Logarithmic residual curve)
+  - Acceleration vs. Gear Ratio, Max Speed, Gradeability, Power Losses, Transmission Efficiency, Composite Score, and Newton-Raphson error convergence decay.
 - **⚙️ Governing Equations & Mathematical Model Panel:**
   - Placed directly below the optimization results so evaluators can inspect every governing formula in real-time.
 - **💾 1,000-Point Synthetic Driving Cycle Dataset:**
   - Realistic multi-condition simulation with full CSV export functionality.
-- **⚡ Serverless Deployment Ready:**
-  - Native Vercel Python serverless integration via `vercel.json`.
 
 ---
 
